@@ -14,15 +14,26 @@
         "title": "Verify your Email",
         "description": "A magic link has been generated! Please check your server logs or your email inbox, and click the link to verify. After verifying, click 'Submit' or wait for the system to continue."
       },
-      "sensors": {
-        "title": "Select Sensors and Location",
-        "description": "Select the temperature sensors you want to upload data for, and enter your postal code (to map to a broad climate region anonymously).",
-        "data": {
-          "sensors": "Temperature Sensors",
-          "postal_code": "Postal Code"
+        "sensors": {
+          "title": "Select Sensors and Location",
+          "description": "Select the temperature sensors you want to upload data for, and enter your postal code (to map to a broad climate region anonymously).",
+          "data": {
+            "sensors": "Temperature Sensors",
+            "postal_code": "Postal Code"
+          }
+        },
+        "metadata": {
+          "title": "Building Information",
+          "description": "Please provide some metadata about your building so we can better categorize the thermal data.",
+          "data": {
+            "building_age": "Building Age",
+            "floor_level": "Floor Level",
+            "orientation": "Primary Window Orientation",
+            "insulation_status": "Insulation Status",
+            "consent_2025": "I consent to securely uploading my historical temperature data starting from January 1st, 2025."
+          }
         }
-      }
-    },
+      },
     "error": {
       "auth_failed": "Failed to communicate with the server to request a link.",
       "not_verified": "The magic link has not been clicked yet. Please click it and try again.",
@@ -31,6 +42,35 @@
     },
     "abort": {
       "already_configured": "This integration is already configured."
+    }
+  },
+  "selector": {
+    "building_age": {
+      "options": {
+        "pre_1977": "pre-1977",
+        "1978_1994": "1978-1994",
+        "1995_2015": "1995-2015",
+        "new_build": "New Build"
+      }
+    },
+    "floor_level": {
+      "options": {
+        "ground": "Ground floor",
+        "middle": "Middle floor",
+        "top": "Top floor / Dachgeschoss"
+      }
+    },
+    "orientation": {
+      "options": {
+        "south_west": "South/West",
+        "north_east": "North/East"
+      }
+    },
+    "insulation_status": {
+      "options": {
+        "unrenovated": "Unrenovated",
+        "retrofit": "Energy-efficient retrofit"
+      }
     }
   }
 }

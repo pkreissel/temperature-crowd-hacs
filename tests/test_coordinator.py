@@ -59,7 +59,7 @@ async def test_coordinator_mapping(mock_post):
     result = await coordinator._async_update_data()
     
     assert result is True
-    mock_post.assert_called_once()
+    assert mock_post.call_count == 2
     
     # Verify the payload structure
     call_kwargs = mock_post.call_args.kwargs

@@ -38,6 +38,16 @@ STEP_SENSORS_DATA_SCHEMA = vol.Schema(
     }
 )
 
+STEP_METADATA_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required("building_age"): vol.In(["pre_1977", "1978_1994", "1995_2015", "new_build"]),
+        vol.Required("floor_level"): vol.In(["ground", "middle", "top"]),
+        vol.Required("orientation"): vol.In(["south_west", "north_east"]),
+        vol.Required("insulation_status"): vol.In(["unrenovated", "retrofit"]),
+        vol.Required("consent_2025", default=False): bool,
+    }
+)
+
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for TemperaturCrowd."""
 
@@ -52,6 +62,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._X: bytes | None = None
         self._blind_factor: int | None = None
         self._server_n: str | None = None
+        self.sensors: list[str] = []
+        self.postal_code: str | None = None
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -146,16 +158,38 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle the sensor selection and coarse location."""
         if user_input is not None:
-            # Map the postal code to climate region A/B/C locally
-            # Store the resulting config entry
+            self.sensors = user_input["sensors"]
+            self.postal_code = user_input["postal_code"]
+            return await self.async_step_metadata()
+
+        return self.async_show_form(
+            step_id="sensors", data_schema=STEP_SENSORS_DATA_SCHEMA
+        )
+
+    async def async_step_metadata(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle the metadata collection step."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            if not user_input.get("consent_2025"):
+                errors["base"] = "consent_required"
+                return self.async_show_form(
+                    step_id="metadata", data_schema=STEP_METADATA_DATA_SCHEMA, errors=errors
+                )
+            
             data = {
                 CONF_API_KEY: self.api_key,
                 CONF_SERVER_URL: self.server_url,
-                "sensors": user_input["sensors"],
-                "postal_code": user_input["postal_code"]
+                "sensors": self.sensors,
+                "postal_code": self.postal_code,
+                "building_age": user_input["building_age"],
+                "floor_level": user_input["floor_level"],
+                "orientation": user_input["orientation"],
+                "insulation_status": user_input["insulation_status"]
             }
             return self.async_create_entry(title="TemperaturCrowd", data=data)
 
         return self.async_show_form(
-            step_id="sensors", data_schema=STEP_SENSORS_DATA_SCHEMA
+            step_id="metadata", data_schema=STEP_METADATA_DATA_SCHEMA, errors=errors
         )

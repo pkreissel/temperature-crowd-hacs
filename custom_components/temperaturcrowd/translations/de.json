@@ -14,15 +14,26 @@
         "title": "E-Mail bestätigen",
         "description": "Ein Magic Link wurde generiert! Bitte überprüfen Sie Ihre Server-Logs oder Ihren Posteingang und klicken Sie auf den Link. Klicken Sie danach auf 'OK'."
       },
-      "sensors": {
-        "title": "Sensoren und Standort wählen",
-        "description": "Wählen Sie die Temperatursensoren aus, deren Daten Sie hochladen möchten, und geben Sie Ihre Postleitzahl ein (für eine anonyme Klimazonen-Zuordnung).",
-        "data": {
-          "sensors": "Temperatursensoren",
-          "postal_code": "Postleitzahl"
+        "sensors": {
+          "title": "Sensoren und Standort wählen",
+          "description": "Wählen Sie die Temperatursensoren aus, deren Daten Sie hochladen möchten, und geben Sie Ihre Postleitzahl ein (für eine anonyme Klimazonen-Zuordnung).",
+          "data": {
+            "sensors": "Temperatursensoren",
+            "postal_code": "Postleitzahl"
+          }
+        },
+        "metadata": {
+          "title": "Gebäudeinformationen",
+          "description": "Bitte machen Sie einige Angaben zu Ihrem Gebäude, damit wir die thermischen Daten besser einordnen können.",
+          "data": {
+            "building_age": "Baujahr",
+            "floor_level": "Stockwerk",
+            "orientation": "Hauptfensterausrichtung",
+            "insulation_status": "Sanierungsstand",
+            "consent_2025": "Ich stimme zu, meine historischen Temperaturdaten ab dem 1. Januar 2025 sicher hochzuladen."
+          }
         }
-      }
-    },
+      },
     "error": {
       "auth_failed": "Kommunikation mit dem Server fehlgeschlagen.",
       "not_verified": "Der Magic Link wurde noch nicht geklickt. Bitte klicken Sie ihn und versuchen Sie es erneut.",
@@ -31,6 +42,35 @@
     },
     "abort": {
       "already_configured": "Diese Integration ist bereits konfiguriert."
+    }
+  },
+  "selector": {
+    "building_age": {
+      "options": {
+        "pre_1977": "Vor 1977",
+        "1978_1994": "1978-1994",
+        "1995_2015": "1995-2015",
+        "new_build": "Neubau"
+      }
+    },
+    "floor_level": {
+      "options": {
+        "ground": "Erdgeschoss",
+        "middle": "Mittleres Stockwerk",
+        "top": "Dachgeschoss / Oberstes Stockwerk"
+      }
+    },
+    "orientation": {
+      "options": {
+        "south_west": "Süd/West",
+        "north_east": "Nord/Ost"
+      }
+    },
+    "insulation_status": {
+      "options": {
+        "unrenovated": "Unsaniert",
+        "retrofit": "Energetisch saniert"
+      }
     }
   }
 }

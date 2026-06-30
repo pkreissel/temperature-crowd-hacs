@@ -25,9 +25,16 @@ async def async_setup_entry(
     server_url = entry.data["server_url"]
     sensors = entry.data.get("sensors", [])
     postal_code = entry.data.get("postal_code", "")
+    building_age = entry.data.get("building_age")
+    floor_level = entry.data.get("floor_level")
+    orientation = entry.data.get("orientation")
+    insulation_status = entry.data.get("insulation_status")
     
     # Instantiate the coordinator
-    coordinator = TemperaturCrowdCoordinator(hass, api_key, server_url, sensors, postal_code)
+    coordinator = TemperaturCrowdCoordinator(
+        hass, api_key, server_url, sensors, postal_code,
+        building_age, floor_level, orientation, insulation_status
+    )
     
     # Fetch initial data
     await coordinator.async_config_entry_first_refresh()
