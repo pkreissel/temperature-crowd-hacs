@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "TemperaturCrowd Configuration",
+        "description": "Enter your Server URL and your email address to receive a magic verification link.",
+        "data": {
+          "server_url": "Server URL",
+          "email": "Email Address"
+        }
+      },
+      "wait_for_email": {
+        "title": "Verify your Email",
+        "description": "A magic link has been generated! Please check your server logs or your email inbox, and click the link to verify. After verifying, click 'Submit' or wait for the system to continue."
+      },
+      "sensors": {
+        "title": "Select Sensors and Location",
+        "description": "Select the temperature sensors you want to upload data for, and enter your postal code (to map to a broad climate region anonymously).",
+        "data": {
+          "sensors": "Temperature Sensors",
+          "postal_code": "Postal Code"
+        }
+      }
+    },
+    "error": {
+      "auth_failed": "Failed to communicate with the server to request a link.",
+      "not_verified": "The magic link has not been clicked yet. Please click it and try again.",
+      "poll_failed": "Failed to poll the server for verification status."
+    },
+    "abort": {
+      "already_configured": "This integration is already configured."
+    }
+  }
+}

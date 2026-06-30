@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "TemperaturCrowd Konfiguration",
+        "description": "Geben Sie Ihre Server-URL und E-Mail-Adresse ein, um einen Magic Link zur Verifizierung zu erhalten.",
+        "data": {
+          "server_url": "Server-URL",
+          "email": "E-Mail-Adresse"
+        }
+      },
+      "wait_for_email": {
+        "title": "E-Mail bestätigen",
+        "description": "Ein Magic Link wurde generiert! Bitte überprüfen Sie Ihre Server-Logs oder Ihren Posteingang und klicken Sie auf den Link. Klicken Sie danach auf 'OK'."
+      },
+      "sensors": {
+        "title": "Sensoren und Standort wählen",
+        "description": "Wählen Sie die Temperatursensoren aus, deren Daten Sie hochladen möchten, und geben Sie Ihre Postleitzahl ein (für eine anonyme Klimazonen-Zuordnung).",
+        "data": {
+          "sensors": "Temperatursensoren",
+          "postal_code": "Postleitzahl"
+        }
+      }
+    },
+    "error": {
+      "auth_failed": "Kommunikation mit dem Server fehlgeschlagen.",
+      "not_verified": "Der Magic Link wurde noch nicht geklickt. Bitte klicken Sie ihn und versuchen Sie es erneut.",
+      "poll_failed": "Abfrage des Verifizierungsstatus fehlgeschlagen."
+    },
+    "abort": {
+      "already_configured": "Diese Integration ist bereits konfiguriert."
+    }
+  }
+}
