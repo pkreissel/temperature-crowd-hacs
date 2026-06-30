@@ -11,6 +11,7 @@ sys.modules['homeassistant.helpers.update_coordinator'] = MagicMock()
 sys.modules['homeassistant.components'] = MagicMock()
 sys.modules['homeassistant.components.recorder'] = MagicMock()
 sys.modules['homeassistant.components.recorder.models'] = MagicMock()
+sys.modules['homeassistant.components.recorder.statistics'] = MagicMock()
 
 # Create a dummy DataUpdateCoordinator
 class DummyCoordinator:
@@ -23,6 +24,9 @@ class DummyCoordinator:
 sys.modules['homeassistant.helpers.update_coordinator'].DataUpdateCoordinator = DummyCoordinator
 sys.modules['homeassistant.helpers.update_coordinator'].UpdateFailed = Exception
 
+mock_get_instance = MagicMock()
+sys.modules['homeassistant.components.recorder'].get_instance = mock_get_instance
+
 from custom_components.temperaturcrowd.coordinator import TemperaturCrowdCoordinator
 import pytest
 
@@ -32,7 +36,8 @@ async def test_coordinator_mapping(mock_post):
     hass = MagicMock()
     hass.data = {"core.uuid": "test-uuid"}
     
-    hass.async_add_executor_job = AsyncMock(return_value={
+    mock_instance = MagicMock()
+    mock_instance.async_add_executor_job = AsyncMock(return_value={
         "sensor.bedroom_temperature": [
             {
                 "start": 1719658800, # 2024-06-29T11:00:00Z
@@ -42,13 +47,14 @@ async def test_coordinator_mapping(mock_post):
             }
         ]
     })
+    mock_get_instance.return_value = mock_instance
     
     mock_resp = AsyncMock()
     mock_ctx = AsyncMock()
     mock_ctx.__aenter__.return_value = mock_resp
     mock_post.return_value = mock_ctx
     
-    coordinator = TemperaturCrowdCoordinator(hass, "test-api-key", ["sensor.bedroom_temperature"])
+    coordinator = TemperaturCrowdCoordinator(hass, "test-api-key", "http://test-server", ["sensor.bedroom_temperature"], "12345")
     
     result = await coordinator._async_update_data()
     
