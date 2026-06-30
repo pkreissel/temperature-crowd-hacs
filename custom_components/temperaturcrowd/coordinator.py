@@ -8,7 +8,7 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 from homeassistant.components.recorder import get_instance
-from homeassistant.components.recorder.models import statistic_data_during_period
+from homeassistant.components.recorder.statistics import statistics_during_period
 
 from .const import DOMAIN, CONF_API_KEY, CONF_SERVER_URL
 
@@ -44,8 +44,8 @@ class TemperaturCrowdCoordinator(DataUpdateCoordinator):
             
             # This fetches the hour's stats from the DB
             print("Before async_add_executor_job")
-            stats = await self.hass.async_add_executor_job(
-                statistic_data_during_period,
+            stats = await get_instance(self.hass).async_add_executor_job(
+                statistics_during_period,
                 self.hass,
                 start_time,
                 end_time,
