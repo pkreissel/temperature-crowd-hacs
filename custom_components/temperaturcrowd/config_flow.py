@@ -6,7 +6,6 @@ from typing import Any
 
 import voluptuous as vol
 import secrets
-import pyoprf
 import aiohttp
 
 from homeassistant import config_entries
@@ -61,8 +60,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Generate a random 32-byte pseudonym X
             self._X = secrets.token_hex(32).encode()
             
-            # 1. Blind X
-            self._blind_factor, blinded_input = pyoprf.blind(self._X)
+            # 1. Blind X (for MVP: no blinding, just send X directly to be HMAC'd by server)
+            blinded_input = self._X
             
             # 2. Exchange with Server
             try:
@@ -100,16 +99,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data = await resp.json()
                     
                     if data.get("status") == "verified":
-                        evaluated_element = bytes.fromhex(data["evaluated_element"])
+                        evaluated_element = data["evaluated_element"]
                         
-                        # 3. Unblind the result
-                        unblinded_result = pyoprf.unblind(self._blind_factor, evaluated_element)
+                        # 3. Finalize to get the OPRF token (MVP: token is just evaluated_element)
+                        final_result = evaluated_element
                         
-                        # 4. Finalize to get the OPRF token
-                        final_result = pyoprf.finalize(self._X, unblinded_result)
-                        
-                        # The token format is X:OPRF(k, X)
-                        self.api_key = f"{self._X.decode()}:{final_result.hex()}"
+                        # The token format is X:Y
+                        self.api_key = f"{self._X.decode()}:{final_result}"
                         
                         return await self.async_step_sensors()
                     else:
