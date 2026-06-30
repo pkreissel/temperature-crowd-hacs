@@ -17,6 +17,7 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import DOMAIN, CONF_API_KEY, CONF_EMAIL
+from .blind_rsa import get_blinded_message, unblind_signature
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,7 +48,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.api_key: str | None = None
         self.session_id: str | None = None
         self._X: bytes | None = None
-        self._blind_factor: bytes | None = None
+        self._blind_factor: int | None = None
+        self._server_n: str | None = None
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -60,15 +62,23 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Generate a random 32-byte pseudonym X
             self._X = secrets.token_hex(32).encode()
             
-            # 1. Blind X (for MVP: no blinding, just send X directly to be HMAC'd by server)
-            blinded_input = self._X
-            
-            # 2. Exchange with Server
+            # Fetch Server Public Key and Blind X
             try:
                 async with aiohttp.ClientSession() as session:
+                    # 1. Fetch public key
+                    pk_resp = await session.get("http://localhost:3000/v1/auth/public-key")
+                    pk_resp.raise_for_status()
+                    pk_data = await pk_resp.json()
+                    self._server_n = pk_data["n"]
+                    server_e = pk_data["e"]
+                    
+                    # 2. Blind the message
+                    self._blind_factor, blinded_hex = get_blinded_message(self._X, self._server_n, server_e)
+                    
+                    # 3. Request Link
                     resp = await session.post(
                         "http://localhost:3000/v1/auth/request-link", 
-                        json={"email": self.email, "blinded_element": blinded_input.hex()}
+                        json={"email": self.email, "blinded_element": blinded_hex}
                     )
                     resp.raise_for_status()
                     data = await resp.json()
@@ -99,13 +109,17 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data = await resp.json()
                     
                     if data.get("status") == "verified":
-                        evaluated_element = data["evaluated_element"]
+                        evaluated_element_hex = data["evaluated_element"]
                         
-                        # 3. Finalize to get the OPRF token (MVP: token is just evaluated_element)
-                        final_result = evaluated_element
+                        # 4. Unblind the signature
+                        final_signature = unblind_signature(
+                            self._blind_factor, 
+                            evaluated_element_hex, 
+                            self._server_n
+                        )
                         
-                        # The token format is X:Y
-                        self.api_key = f"{self._X.decode()}:{final_result}"
+                        # The token format is X:Signature
+                        self.api_key = f"{self._X.decode()}:{final_signature}"
                         
                         return await self.async_step_sensors()
                     else:
