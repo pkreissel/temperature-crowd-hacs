@@ -8,6 +8,6 @@
   "integration_type": "hub",
   "iot_class": "cloud_push",
   "issue_tracker": "https://github.com/temperaturcrowd/hacs/issues",
-  "requirements": ["pyoprf==1.0.0"],
+  "requirements": ["pyoprf==0.9.4"],
   "version": "1.0.0"
 }
