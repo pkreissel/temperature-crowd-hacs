@@ -23,6 +23,7 @@ _LOGGER = logging.getLogger(__name__)
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
+        vol.Required(CONF_SERVER_URL, default="http://192.168.178.109:3000"): str,
         vol.Required(CONF_EMAIL): str,
         # In a full implementation, this triggers the RFC 9474 magic link exchange
     }
@@ -45,6 +46,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         """Initialize the config flow."""
         self.email: str | None = None
+        self.server_url: str | None = None
         self.api_key: str | None = None
         self.session_id: str | None = None
         self._X: bytes | None = None
@@ -58,6 +60,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             self.email = user_input[CONF_EMAIL]
+            self.server_url = user_input[CONF_SERVER_URL].rstrip('/')
             
             # Generate a random 32-byte pseudonym X
             self._X = secrets.token_hex(32).encode()
@@ -66,7 +69,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 async with aiohttp.ClientSession() as session:
                     # 1. Fetch public key
-                    pk_resp = await session.get(f"{AUTH_BASE_URL}/public-key")
+                    pk_resp = await session.get(f"{self.server_url}/v1/auth/public-key")
                     pk_resp.raise_for_status()
                     pk_data = await pk_resp.json()
                     self._server_n = pk_data["n"]
@@ -77,7 +80,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     
                     # 3. Request Link
                     resp = await session.post(
-                        f"{AUTH_BASE_URL}/request-link", 
+                        f"{self.server_url}/v1/auth/request-link", 
                         json={"email": self.email, "blinded_element": blinded_hex}
                     )
                     resp.raise_for_status()
@@ -104,7 +107,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 async with aiohttp.ClientSession() as session:
-                    resp = await session.get(f"{AUTH_BASE_URL}/poll/{self.session_id}")
+                    resp = await session.get(f"{self.server_url}/v1/auth/poll/{self.session_id}")
                     resp.raise_for_status()
                     data = await resp.json()
                     
@@ -141,6 +144,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Store the resulting config entry
             data = {
                 CONF_API_KEY: self.api_key,
+                CONF_SERVER_URL: self.server_url,
                 "sensors": user_input["sensors"],
                 "postal_code": user_input["postal_code"]
             }

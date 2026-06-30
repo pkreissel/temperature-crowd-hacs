@@ -10,16 +10,17 @@ from homeassistant.helpers.update_coordinator import (
 from homeassistant.components.recorder import get_instance
 from homeassistant.components.recorder.models import statistic_data_during_period
 
-from .const import DOMAIN, INGEST_URL, CONF_API_KEY
+from .const import DOMAIN, CONF_API_KEY, CONF_SERVER_URL
 
 _LOGGER = logging.getLogger(__name__)
 
 class TemperaturCrowdCoordinator(DataUpdateCoordinator):
     """Class to manage fetching LTS and pushing to server."""
 
-    def __init__(self, hass: HomeAssistant, api_key: str, sensors: list[str], postal_code: str) -> None:
+    def __init__(self, hass: HomeAssistant, api_key: str, server_url: str, sensors: list[str], postal_code: str) -> None:
         """Initialize."""
         self.api_key = api_key
+        self.server_url = server_url
         self.sensors = sensors
         self.postal_code = postal_code
         self.session = aiohttp.ClientSession()
@@ -79,7 +80,7 @@ class TemperaturCrowdCoordinator(DataUpdateCoordinator):
             
             # 3. POST to server
             print("Before session.post")
-            async with self.session.post(INGEST_URL, json=payload) as resp:
+            async with self.session.post(f"{self.server_url}/v1/ingest", json=payload) as resp:
                 print("Inside session.post")
                 resp.raise_for_status()
 
