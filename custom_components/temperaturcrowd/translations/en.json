@@ -6,7 +6,8 @@
         "description": "Enter your Server URL and your email address to receive a magic verification link.",
         "data": {
           "server_url": "Server URL",
-          "email": "Email Address"
+          "email": "Email Address",
+          "consent": "I agree to the Data Protection Statement and consent to data collection."
         }
       },
       "wait_for_email": {
@@ -25,7 +26,8 @@
     "error": {
       "auth_failed": "Failed to communicate with the server to request a link.",
       "not_verified": "The magic link has not been clicked yet. Please click it and try again.",
-      "poll_failed": "Failed to poll the server for verification status."
+      "poll_failed": "Failed to poll the server for verification status.",
+      "consent_required": "You must agree to the Data Protection Statement to continue."
     },
     "abort": {
       "already_configured": "This integration is already configured."

@@ -6,7 +6,8 @@
         "description": "Geben Sie Ihre Server-URL und E-Mail-Adresse ein, um einen Magic Link zur Verifizierung zu erhalten.",
         "data": {
           "server_url": "Server-URL",
-          "email": "E-Mail-Adresse"
+          "email": "E-Mail-Adresse",
+          "consent": "Ich stimme der Datenschutzerklärung zu und willige in die Datenerfassung ein."
         }
       },
       "wait_for_email": {
@@ -25,7 +26,8 @@
     "error": {
       "auth_failed": "Kommunikation mit dem Server fehlgeschlagen.",
       "not_verified": "Der Magic Link wurde noch nicht geklickt. Bitte klicken Sie ihn und versuchen Sie es erneut.",
-      "poll_failed": "Abfrage des Verifizierungsstatus fehlgeschlagen."
+      "poll_failed": "Abfrage des Verifizierungsstatus fehlgeschlagen.",
+      "consent_required": "Sie müssen der Datenschutzerklärung zustimmen, um fortzufahren."
     },
     "abort": {
       "already_configured": "Diese Integration ist bereits konfiguriert."

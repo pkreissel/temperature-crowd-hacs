@@ -1,6 +1,7 @@
 import logging
 import random
 from datetime import timedelta, datetime, timezone
+import hashlib
 import aiohttp
 
 from homeassistant.core import HomeAssistant
@@ -69,12 +70,12 @@ class TemperaturCrowdCoordinator(DataUpdateCoordinator):
         try:
             if self.last_successful_upload is None:
                 await self._async_calculate_historical_overheating()
-            # 1. Fetch long-term statistics for the last hour
+            # 1. Fetch long-term statistics for the last 4 hours
             # (In a real implementation, we'd track the last sent timestamp
             # to handle the initial backfill vs ongoing updates)
             
             end_time = datetime.now(timezone.utc)
-            start_time = end_time - timedelta(hours=1)
+            start_time = end_time - timedelta(hours=4)
             
             # This fetches the hour's stats from the DB
             print("Before async_add_executor_job")
@@ -104,7 +105,7 @@ class TemperaturCrowdCoordinator(DataUpdateCoordinator):
                         "temp_c": mean_temp,
                         "temp_c_min": point.get("min", 0),
                         "temp_c_max": point.get("max", 0),
-                        "room_ref": sensor_id
+                        "room_ref": hashlib.sha256(sensor_id.encode('utf-8')).hexdigest()[:16]
                     })
             
             if any_overheated:

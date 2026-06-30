@@ -73,6 +73,7 @@ async def test_coordinator_mapping(mock_post):
     assert reading["temp_c"] == 26.5
     assert reading["temp_c_min"] == 25.0
     assert reading["temp_c_max"] == 28.0
-    assert reading["room_ref"] == "sensor.bedroom_temperature"
+    import hashlib
+    assert reading["room_ref"] == hashlib.sha256("sensor.bedroom_temperature".encode('utf-8')).hexdigest()[:16]
     # Ensure it converted the unix timestamp to ISO format
     assert "T11:00:00+00:00" in reading["ts"]

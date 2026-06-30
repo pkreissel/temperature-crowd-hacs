@@ -25,7 +25,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_SERVER_URL, default="http://192.168.178.109:3000"): str,
         vol.Required(CONF_EMAIL): str,
-        # In a full implementation, this triggers the RFC 9474 magic link exchange
+        vol.Required("consent", default=False): bool,
     }
 )
 
@@ -59,6 +59,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         errors: dict[str, str] = {}
         if user_input is not None:
+            if not user_input.get("consent"):
+                errors["base"] = "consent_required"
+                return self.async_show_form(
+                    step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+                )
+
             self.email = user_input[CONF_EMAIL]
             self.server_url = user_input[CONF_SERVER_URL].rstrip('/')
             
