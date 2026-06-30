@@ -16,7 +16,7 @@ from homeassistant.helpers.selector import (
     EntitySelectorConfig,
 )
 
-from .const import DOMAIN, CONF_API_KEY, CONF_EMAIL
+from .const import DOMAIN, CONF_API_KEY, CONF_EMAIL, AUTH_BASE_URL
 from .blind_rsa import get_blinded_message, unblind_signature
 
 _LOGGER = logging.getLogger(__name__)
@@ -66,7 +66,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 async with aiohttp.ClientSession() as session:
                     # 1. Fetch public key
-                    pk_resp = await session.get("http://localhost:3000/v1/auth/public-key")
+                    pk_resp = await session.get(f"{AUTH_BASE_URL}/public-key")
                     pk_resp.raise_for_status()
                     pk_data = await pk_resp.json()
                     self._server_n = pk_data["n"]
@@ -77,7 +77,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     
                     # 3. Request Link
                     resp = await session.post(
-                        "http://localhost:3000/v1/auth/request-link", 
+                        f"{AUTH_BASE_URL}/request-link", 
                         json={"email": self.email, "blinded_element": blinded_hex}
                     )
                     resp.raise_for_status()
@@ -104,7 +104,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 async with aiohttp.ClientSession() as session:
-                    resp = await session.get(f"http://localhost:3000/v1/auth/poll/{self.session_id}")
+                    resp = await session.get(f"{AUTH_BASE_URL}/poll/{self.session_id}")
                     resp.raise_for_status()
                     data = await resp.json()
                     
