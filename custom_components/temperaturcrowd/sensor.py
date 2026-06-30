@@ -32,8 +32,11 @@ async def async_setup_entry(
     # Fetch initial data
     await coordinator.async_config_entry_first_refresh()
 
-    # Add the dummy status entity
-    async_add_entities([TemperaturCrowdStatusSensor(coordinator)])
+    # Add the entities
+    async_add_entities([
+        TemperaturCrowdStatusSensor(coordinator),
+        TemperaturCrowdOverheatingSensor(coordinator)
+    ])
 
 
 class TemperaturCrowdStatusSensor(CoordinatorEntity[TemperaturCrowdCoordinator], SensorEntity):
@@ -57,8 +60,29 @@ class TemperaturCrowdStatusSensor(CoordinatorEntity[TemperaturCrowdCoordinator],
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
+        last_upload_iso = None
+        if self.coordinator.last_successful_upload:
+            last_upload_iso = self.coordinator.last_successful_upload.isoformat()
+            
         return {
             "monitored_sensors": self.coordinator.sensors,
             "postal_code": self.coordinator.postal_code,
-            "last_upload": self.coordinator.last_update_success,
+            "last_upload_status": self.coordinator.last_update_success,
+            "last_upload_time": last_upload_iso,
         }
+
+class TemperaturCrowdOverheatingSensor(CoordinatorEntity[TemperaturCrowdCoordinator], SensorEntity):
+    """Representation of the Überhitzestunden Sensor."""
+
+    def __init__(self, coordinator: TemperaturCrowdCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_name = "TemperaturCrowd Überhitzestunden"
+        self._attr_unique_id = f"{DOMAIN}_overheating"
+        self._attr_icon = "mdi:thermometer-alert"
+        self._attr_native_unit_of_measurement = "h"
+
+    @property
+    def native_value(self) -> int:
+        """Return the state of the sensor."""
+        return self.coordinator.overheating_hours
