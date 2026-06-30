@@ -1,4 +1,5 @@
 import logging
+import random
 from datetime import timedelta, datetime, timezone
 import aiohttp
 
@@ -25,11 +26,14 @@ class TemperaturCrowdCoordinator(DataUpdateCoordinator):
         self.postal_code = postal_code
         self.session = aiohttp.ClientSession()
 
+        # Add randomness to prevent thundering herd spikes (interval between 50 and 70 minutes)
+        jitter_minutes = random.randint(0, 20)
+        
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(hours=1),
+            update_interval=timedelta(minutes=50 + jitter_minutes),
         )
 
     async def _async_update_data(self):
