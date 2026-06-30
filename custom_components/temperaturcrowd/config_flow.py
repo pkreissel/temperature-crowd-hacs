@@ -16,7 +16,7 @@ from homeassistant.helpers.selector import (
     EntitySelectorConfig,
 )
 
-from .const import DOMAIN, CONF_API_KEY, CONF_EMAIL, AUTH_BASE_URL
+from .const import DOMAIN, CONF_API_KEY, CONF_EMAIL, CONF_SERVER_URL
 from .blind_rsa import get_blinded_message, unblind_signature
 
 _LOGGER = logging.getLogger(__name__)
