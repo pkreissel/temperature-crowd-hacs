@@ -1,0 +1,13 @@
+{
+  "domain": "temperaturcrowd",
+  "name": "TemperaturCrowd",
+  "codeowners": ["@temperaturcrowd"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/temperaturcrowd/hacs",
+  "integration_type": "hub",
+  "iot_class": "cloud_push",
+  "issue_tracker": "https://github.com/temperaturcrowd/hacs/issues",
+  "requirements": ["pyoprf==1.0.0"],
+  "version": "1.0.0"
+}

@@ -1,0 +1,141 @@
+"""Config flow for TemperaturCrowd integration."""
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+import voluptuous as vol
+import secrets
+import pyoprf
+import aiohttp
+
+from homeassistant import config_entries
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
+)
+
+from .const import DOMAIN, CONF_API_KEY, CONF_EMAIL
+
+_LOGGER = logging.getLogger(__name__)
+
+STEP_USER_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_EMAIL): str,
+        # In a full implementation, this triggers the RFC 9474 magic link exchange
+    }
+)
+
+STEP_SENSORS_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required("sensors"): EntitySelector(
+            EntitySelectorConfig(domain="sensor", device_class="temperature", multiple=True)
+        ),
+        vol.Required("postal_code"): str, # Used for coarse location/climate region mapping
+    }
+)
+
+class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for TemperaturCrowd."""
+
+    VERSION = 1
+
+    def __init__(self) -> None:
+        """Initialize the config flow."""
+        self.email: str | None = None
+        self.api_key: str | None = None
+        self.session_id: str | None = None
+        self._X: bytes | None = None
+        self._blind_factor: bytes | None = None
+
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle the initial step."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            self.email = user_input[CONF_EMAIL]
+            
+            # Generate a random 32-byte pseudonym X
+            self._X = secrets.token_hex(32).encode()
+            
+            # 1. Blind X
+            self._blind_factor, blinded_input = pyoprf.blind(self._X)
+            
+            # 2. Exchange with Server
+            try:
+                async with aiohttp.ClientSession() as session:
+                    resp = await session.post(
+                        "http://localhost:3000/v1/auth/request-link", 
+                        json={"email": self.email, "blinded_element": blinded_input.hex()}
+                    )
+                    resp.raise_for_status()
+                    data = await resp.json()
+                    self.session_id = data["session_id"]
+            except Exception as e:
+                _LOGGER.error(f"Failed to request link: {e}")
+                errors["base"] = "auth_failed"
+                return self.async_show_form(
+                    step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+                )
+                
+            return await self.async_step_wait_for_email()
+
+        return self.async_show_form(
+            step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+        )
+
+    async def async_step_wait_for_email(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Wait for the user to click the magic link."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    resp = await session.get(f"http://localhost:3000/v1/auth/poll/{self.session_id}")
+                    resp.raise_for_status()
+                    data = await resp.json()
+                    
+                    if data.get("status") == "verified":
+                        evaluated_element = bytes.fromhex(data["evaluated_element"])
+                        
+                        # 3. Unblind the result
+                        unblinded_result = pyoprf.unblind(self._blind_factor, evaluated_element)
+                        
+                        # 4. Finalize to get the OPRF token
+                        final_result = pyoprf.finalize(self._X, unblinded_result)
+                        
+                        # The token format is X:OPRF(k, X)
+                        self.api_key = f"{self._X.decode()}:{final_result.hex()}"
+                        
+                        return await self.async_step_sensors()
+                    else:
+                        errors["base"] = "not_verified"
+            except Exception as e:
+                _LOGGER.error(f"Failed to poll status: {e}")
+                errors["base"] = "poll_failed"
+
+        return self.async_show_form(
+            step_id="wait_for_email", data_schema=vol.Schema({}), errors=errors
+        )
+
+    async def async_step_sensors(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle the sensor selection and coarse location."""
+        if user_input is not None:
+            # Map the postal code to climate region A/B/C locally
+            # Store the resulting config entry
+            data = {
+                CONF_API_KEY: self.api_key,
+                "sensors": user_input["sensors"],
+                "postal_code": user_input["postal_code"]
+            }
+            return self.async_create_entry(title="TemperaturCrowd", data=data)
+
+        return self.async_show_form(
+            step_id="sensors", data_schema=STEP_SENSORS_DATA_SCHEMA
+        )
