@@ -7,6 +7,7 @@ from typing import Any
 import voluptuous as vol
 import secrets
 import aiohttp
+import uuid
 
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
@@ -24,7 +25,6 @@ _LOGGER = logging.getLogger(__name__)
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_SERVER_URL, default="http://192.168.178.109:3000"): str,
-        vol.Required(CONF_EMAIL): str,
         vol.Required("consent", default=False): bool,
     }
 )
@@ -55,7 +55,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         """Initialize the config flow."""
-        self.email: str | None = None
         self.server_url: str | None = None
         self.api_key: str | None = None
         self.session_id: str | None = None
@@ -77,7 +76,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
                 )
 
-            self.email = user_input[CONF_EMAIL]
             self.server_url = user_input[CONF_SERVER_URL].rstrip('/')
             
             # Generate a random 32-byte pseudonym X
@@ -96,31 +94,31 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     # 2. Blind the message
                     self._blind_factor, blinded_hex = get_blinded_message(self._X, self._server_n, server_e)
                     
-                    # 3. Request Link
+                    # 3. Init session
                     resp = await session.post(
-                        f"{self.server_url}/v1/auth/request-link", 
-                        json={"email": self.email, "blinded_element": blinded_hex}
+                        f"{self.server_url}/v1/auth/init", 
+                        json={"blinded_element": blinded_hex}
                     )
                     resp.raise_for_status()
                     data = await resp.json()
                     self.session_id = data["session_id"]
             except Exception as e:
-                _LOGGER.error(f"Failed to request link: {e}")
+                _LOGGER.error(f"Failed to initialize session: {e}")
                 errors["base"] = "auth_failed"
                 return self.async_show_form(
                     step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
                 )
                 
-            return await self.async_step_wait_for_email()
+            return await self.async_step_wait_for_browser()
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
         )
 
-    async def async_step_wait_for_email(
+    async def async_step_wait_for_browser(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Wait for the user to click the magic link."""
+        """Wait for the user to complete verification in their browser."""
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
@@ -149,47 +147,54 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.error(f"Failed to poll status: {e}")
                 errors["base"] = "poll_failed"
 
+        setup_url = f"{self.server_url}/v1/auth/setup?session_id={self.session_id}"
+        
         return self.async_show_form(
-            step_id="wait_for_email", data_schema=vol.Schema({}), errors=errors
+            step_id="wait_for_browser", 
+            description_placeholders={"setup_url": setup_url},
+            data_schema=vol.Schema({}), 
+            errors=errors
         )
 
-    async def async_step_sensors(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle the sensor selection and coarse location."""
-        if user_input is not None:
-            self.sensors = user_input["sensors"]
-            self.postal_code = user_input["postal_code"]
-            return await self.async_step_metadata()
+  async def async_step_sensors(
+      self, user_input: dict[str, Any] | None = None
+  ) -> FlowResult:
+      """Handle the sensor selection and coarse location."""
+      if user_input is not None:
+          self.sensors = user_input["sensors"]
+          # Coarsen postal code to first 2 digits for privacy (ADR-0004)
+          self.postal_code = user_input["postal_code"][:2]
+          return await self.async_step_metadata()
 
-        return self.async_show_form(
-            step_id="sensors", data_schema=STEP_SENSORS_DATA_SCHEMA
-        )
+      return self.async_show_form(
+          step_id="sensors", data_schema=STEP_SENSORS_DATA_SCHEMA
+      )
 
-    async def async_step_metadata(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle the metadata collection step."""
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            if not user_input.get("consent_2025"):
-                errors["base"] = "consent_required"
-                return self.async_show_form(
-                    step_id="metadata", data_schema=STEP_METADATA_DATA_SCHEMA, errors=errors
-                )
-            
-            data = {
-                CONF_API_KEY: self.api_key,
-                CONF_SERVER_URL: self.server_url,
-                "sensors": self.sensors,
-                "postal_code": self.postal_code,
-                "building_age": user_input["building_age"],
-                "floor_level": user_input["floor_level"],
-                "orientation": user_input["orientation"],
-                "insulation_status": user_input["insulation_status"]
-            }
-            return self.async_create_entry(title="TemperaturCrowd", data=data)
+  async def async_step_metadata(
+      self, user_input: dict[str, Any] | None = None
+  ) -> FlowResult:
+      """Handle the metadata collection step."""
+      errors: dict[str, str] = {}
+      if user_input is not None:
+          if not user_input.get("consent_2025"):
+              errors["base"] = "consent_required"
+              return self.async_show_form(
+                  step_id="metadata", data_schema=STEP_METADATA_DATA_SCHEMA, errors=errors
+              )
+          
+          data = {
+              CONF_API_KEY: self.api_key,
+              CONF_SERVER_URL: self.server_url,
+              "device_id": str(uuid.uuid4()), # Generate stable random UUID per install
+              "sensors": self.sensors,
+              "postal_code": self.postal_code,
+              "building_age": user_input["building_age"],
+              "floor_level": user_input["floor_level"],
+              "orientation": user_input["orientation"],
+              "insulation_status": user_input["insulation_status"]
+          }
+          return self.async_create_entry(title="TemperaturCrowd", data=data)
 
-        return self.async_show_form(
-            step_id="metadata", data_schema=STEP_METADATA_DATA_SCHEMA, errors=errors
-        )
+      return self.async_show_form(
+          step_id="metadata", data_schema=STEP_METADATA_DATA_SCHEMA, errors=errors
+      )

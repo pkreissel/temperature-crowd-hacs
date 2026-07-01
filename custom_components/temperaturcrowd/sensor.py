@@ -23,6 +23,15 @@ async def async_setup_entry(
     """Set up the TemperaturCrowd sensor."""
     api_key = entry.data[CONF_API_KEY]
     server_url = entry.data["server_url"]
+    
+    device_id = entry.data.get("device_id")
+    if not device_id:
+        import uuid
+        device_id = str(uuid.uuid4())
+        new_data = dict(entry.data)
+        new_data["device_id"] = device_id
+        hass.config_entries.async_update_entry(entry, data=new_data)
+
     sensors = entry.data.get("sensors", [])
     postal_code = entry.data.get("postal_code", "")
     building_age = entry.data.get("building_age")
@@ -32,7 +41,7 @@ async def async_setup_entry(
     
     # Instantiate the coordinator
     coordinator = TemperaturCrowdCoordinator(
-        hass, api_key, server_url, sensors, postal_code,
+        hass, entry, api_key, server_url, device_id, sensors, postal_code,
         building_age, floor_level, orientation, insulation_status
     )
     

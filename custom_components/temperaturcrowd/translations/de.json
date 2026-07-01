@@ -3,16 +3,15 @@
     "step": {
       "user": {
         "title": "TemperaturCrowd Konfiguration",
-        "description": "Geben Sie Ihre Server-URL und E-Mail-Adresse ein, um einen Magic Link zur Verifizierung zu erhalten.",
+        "description": "Geben Sie Ihre Server-URL ein, um einen sicheren Setup-Link zu generieren.",
         "data": {
           "server_url": "Server-URL",
-          "email": "E-Mail-Adresse",
           "consent": "Ich stimme der Datenschutzerklärung zu und willige in die Datenerfassung ein."
         }
       },
-      "wait_for_email": {
-        "title": "E-Mail bestätigen",
-        "description": "Ein Magic Link wurde generiert! Bitte überprüfen Sie Ihre Server-Logs oder Ihren Posteingang und klicken Sie auf den Link. Klicken Sie danach auf 'OK'."
+      "wait_for_browser": {
+        "title": "Setup im Browser abschließen",
+        "description": "Bitte klicken Sie auf den untenstehenden Link, um Ihre Telefonnummer sicher einzugeben und das CAPTCHA zu lösen. Home Assistant fährt automatisch fort, sobald Sie fertig sind.\n\n[Verifizierungsseite öffnen]({setup_url})"
       },
         "sensors": {
           "title": "Sensoren und Standort wählen",
@@ -35,8 +34,8 @@
         }
       },
     "error": {
-      "auth_failed": "Kommunikation mit dem Server fehlgeschlagen.",
-      "not_verified": "Der Magic Link wurde noch nicht geklickt. Bitte klicken Sie ihn und versuchen Sie es erneut.",
+      "auth_failed": "Kommunikation mit dem Server zur Initialisierung fehlgeschlagen.",
+      "not_verified": "Warte auf Verifizierung im Browser. Bitte schließen Sie die Schritte im anderen Tab ab.",
       "poll_failed": "Abfrage des Verifizierungsstatus fehlgeschlagen.",
       "consent_required": "Sie müssen der Datenschutzerklärung zustimmen, um fortzufahren."
     },
